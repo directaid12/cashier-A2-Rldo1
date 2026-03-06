@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Cashier A2 Examination</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+
+<style>
+
+body{
+font-family:'Poppins',sans-serif;
+background:linear-gradient(120deg,#1e3c72,#2a5298);
+color:white;
+text-align:center;
+padding:30px;
+}
+
+.container{
+background:white;
+color:black;
+padding:30px;
+border-radius:10px;
+width:70%;
+margin:auto;
+margin-top:20px;
+}
+
+button{
+padding:10px 20px;
+border:none;
+background:#2a5298;
+color:white;
+font-size:16px;
+border-radius:6px;
+cursor:pointer;
+margin:5px;
+}
+
+input,textarea{
+width:80%;
+padding:10px;
+margin:10px;
+}
+
+#timer{
+font-size:22px;
+color:red;
+font-weight:bold;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>CASHIER A2 EXAMINATION</h1>
+
+<button onclick="showPage('login')">Start Test</button>
+<button onclick="showPage('adminLogin')">Admin</button>
+<button onclick="showPage('resultsPage')">View Results</button>
+
+
+<div id="login" class="container" style="display:none">
+
+<h2>Candidate Login</h2>
+
+<input id="candidateNumber" placeholder="Enter Candidate Number">
+
+<br>
+
+<button onclick="sendOTP()">Send OTP</button>
+
+<div id="otpBox" style="display:none">
+
+<input id="otpInput" placeholder="Enter OTP">
+
+<button onclick="verifyOTP()">Verify OTP</button>
+
+</div>
+
+</div>
+
+
+<div id="exam" class="container" style="display:none">
+
+<h2 id="questionTitle"></h2>
+
+<div id="timer"></div>
+
+<textarea id="answerBox" rows="6" placeholder="Type your answer here"></textarea>
+
+<br>
+
+<button onclick="nextQuestion()">Next Question</button>
+
+</div>
+
+
+<div id="adminLogin" class="container" style="display:none">
+
+<h2>Admin Login</h2>
+
+<input id="adminPass" placeholder="Password">
+
+<button onclick="adminLogin()">Login</button>
+
+</div>
+
+
+<div id="adminPanel" class="container" style="display:none">
+
+<h2>Admin Marking Portal</h2>
+
+<div id="submissions"></div>
+
+</div>
+
+
+<div id="resultsPage" class="container" style="display:none">
+
+<h2>View Result</h2>
+
+<input id="resultCandidate" placeholder="Candidate Number">
+
+<button onclick="viewResult()">View</button>
+
+<div id="resultDisplay"></div>
+
+</div>
+
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+<script>
+
+var firebaseConfig = {
+
+apiKey: "AIzaSyCI7WlFLM8l9pFb9vIZMkRKo7RFrn6Wf-Q",
+authDomain: "cahier-a2-test.firebaseapp.com",
+databaseURL: "https://cahier-a2-test-default-rtdb.firebaseio.com",
+projectId: "cahier-a2-test",
+storageBucket: "cahier-a2-test.firebasestorage.app",
+messagingSenderId: "208701128131",
+appId: "1:208701128131:web:5dcf3690efa734e848d176"
+
+};
+
+firebase.initializeApp(firebaseConfig);
+
+
+const allowedCandidates=[
+"CAND1001",
+"CAND1002",
+"CAND1003",
+"CAND1004",
+"CAND1005",
+"CAND1006"
+];
+
+
+const questions=[
+
+"1. A customer purchases items totaling $37.85. They pay $20 cash and the remainder with a debit/credit card. Explain how you handle the transaction.",
+
+"2. At the end of your shift you count your cash drawer and notice a difference. Explain how you verify and report the discrepancy.",
+
+"3. A customer returns 3 items totaling $45.60 but only one has a receipt. Explain how you process the return.",
+
+"4. During reconciliation you discover a $50 overage. Explain how you investigate and report.",
+
+"5. A customer insists on paying by check during peak hours. Explain how you handle the situation.",
+
+"6. Describe the correct procedure for opening a cashier shift and preparing the cash drawer.",
+
+"7. Explain how to handle a situation where a customer claims they were overcharged.",
+
+"8. Describe the steps to follow if the POS system stops working during a transaction.",
+
+"9. Explain how good customer service improves cashier performance and store reputation."
+
+];
+
+
+let candidate=""
+let otp=""
+let currentQuestion=0
+let answers={}
+let time=600
+let timer
+
+
+function showPage(id){
+
+document.querySelectorAll(".container").forEach(p=>p.style.display="none")
+
+document.getElementById(id).style.display="block"
+
+}
+
+
+function sendOTP(){
+
+candidate=document.getElementById("candidateNumber").value
+
+if(!allowedCandidates.includes(candidate)){
+
+alert("Invalid candidate number")
+return
+
+}
+
+otp=Math.floor(1000+Math.random()*9000)
+
+alert("OTP: "+otp)
+
+document.getElementById("otpBox").style.display="block"
+
+}
+
+
+function verifyOTP(){
+
+let userOTP=document.getElementById("otpInput").value
+
+if(userOTP==otp){
+
+startExam()
+
+}else{
+
+alert("Wrong OTP")
+
+}
+
+}
+
+
+function startExam(){
+
+showPage("exam")
+
+loadQuestion()
+
+}
+
+
+function loadQuestion(){
+
+document.getElementById("questionTitle").innerText=questions[currentQuestion]
+
+document.getElementById("answerBox").value=""
+
+startTimer()
+
+}
+
+
+function startTimer(){
+
+time=600
+
+timer=setInterval(()=>{
+
+time--
+
+document.getElementById("timer").innerText="Time Remaining: "+time+" seconds"
+
+if(time<=0){
+
+nextQuestion()
+
+}
+
+},1000)
+
+}
+
+
+function nextQuestion(){
+
+clearInterval(timer)
+
+answers["Q"+currentQuestion]=document.getElementById("answerBox").value
+
+currentQuestion++
+
+if(currentQuestion<questions.length){
+
+loadQuestion()
+
+}else{
+
+submitExam()
+
+}
+
+}
+
+
+function submitExam(){
+
+firebase.database().ref("submissions/"+candidate).set({
+
+candidate:candidate,
+answers:answers
+
+})
+
+alert("Exam submitted successfully")
+
+location.reload()
+
+}
+
+
+function adminLogin(){
+
+let pass=document.getElementById("adminPass").value
+
+if(pass=="admin123"){
+
+showPage("adminPanel")
+
+loadSubmissions()
+
+}else{
+
+alert("Wrong password")
+
+}
+
+}
+
+
+function loadSubmissions(){
+
+firebase.database().ref("submissions").on("value",(snap)=>{
+
+let data=snap.val()
+
+let html=""
+
+for(let c in data){
+
+html+="<h3>Candidate: "+c+"</h3>"
+
+for(let q in data[c].answers){
+
+html+="<p>"+q+": "+data[c].answers[q]+"</p>"
+
+html+="Mark: <input type='number' id='"+c+"_"+q+"' min='0' max='10'><br><br>"
+
+}
+
+html+="<button onclick=\"saveMarks('"+c+"')\">Save Marks</button>"
+
+html+="<hr>"
+
+}
+
+document.getElementById("submissions").innerHTML=html
+
+})
+
+}
+
+
+function saveMarks(candidate){
+
+let total=0
+
+let marks={}
+
+for(let i=0;i<questions.length;i++){
+
+let q="Q"+i
+
+let mark=document.getElementById(candidate+"_"+q).value
+
+if(!mark){mark=0}
+
+marks[q]=Number(mark)
+
+total+=Number(mark)
+
+}
+
+firebase.database().ref("results/"+candidate).set({
+
+marks:marks,
+total:total
+
+})
+
+alert("Marks saved")
+
+}
+
+
+function viewResult(){
+
+let c=document.getElementById("resultCandidate").value
+
+firebase.database().ref("results/"+c).once("value",(snap)=>{
+
+let data=snap.val()
+
+if(!data){
+
+document.getElementById("resultDisplay").innerHTML="Result not available"
+
+return
+
+}
+
+let html=""
+
+for(let q in data.marks){
+
+html+="<p>"+q+" : "+data.marks[q]+"</p>"
+
+}
+
+html+="<h3>Total Marks: "+data.total+"</h3>"
+
+document.getElementById("resultDisplay").innerHTML=html
+
+})
+
+}
+
+</script>
+
+</body>
+</html>
